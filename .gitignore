@@ -7,6 +7,7 @@ __pycache__/
 # Virtual environments
 .venv/
 .uv_venv/
+.uv-cache/
 venv/
 env/
 
@@ -25,8 +26,7 @@ htmlcov/
 
 # Project generated outputs
 artifacts/
-data/*.zip
-data/
+/data/
 *.log
 *.db
 *.sqlite*

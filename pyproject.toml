@@ -28,6 +28,7 @@ dependencies = [
     "streamlit-drawable-canvas>=0.9.3",
     "optuna>=4.0.0",
     "optuna-dashboard>=0.20.0",
+    "jupyterlab>=4.6.3",
 ]
 
 [dependency-groups]
@@ -63,6 +64,7 @@ explicit = true
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+extend-exclude = ["notebooks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
