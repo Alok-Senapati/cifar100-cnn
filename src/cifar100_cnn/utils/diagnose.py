@@ -6,18 +6,17 @@ import torch.nn as nn
 
 
 def compute_gradient_norms(model: nn.Module) -> dict[str, float]:
-    """Compute the L2 norm of gradients for each model parameter and overall.
+    """Compute per-parameter and aggregate L2 gradient norms.
 
-    This helper traverses all named parameters in the model that have accumulated
-    gradients (after `loss.backward()`), computes their Euclidean (L2) norm,
-    and calculates the total aggregate gradient norm.
+    Parameters without gradients are skipped. The aggregate is the square root
+    of the sum of squared per-parameter norms, and is zero when no gradients exist.
 
     Args:
-        model: PyTorch neural network model with computed parameter gradients.
+        model: Model whose parameters may have accumulated gradients.
 
     Returns:
-        A dictionary mapping parameter names (e.g. `'grad_norm/head.weight'`)
-        and `'grad_norm/total'` to their corresponding float L2 norm values.
+        A mapping from parameter names and the aggregate key grad_norm/total
+        to their respective L2 norms.
     """
     norms: dict[str, float] = {}
     total_norm_sq = 0.0

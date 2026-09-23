@@ -78,7 +78,6 @@ def test_baseline_cnn_forward_method_directly() -> None:
     assert torch.equal(call_output, forward_output)
 
 
-
 @pytest.mark.parametrize("batch_size", [1, 2, 8])
 def test_baseline_cnn_handles_variable_batch_sizes(batch_size: int) -> None:
     """Model processes arbitrary batch sizes correctly."""
@@ -129,10 +128,10 @@ def test_baseline_cnn_training_step_reduces_loss() -> None:
     x = torch.randn(8, 3, 32, 32)
     target = torch.randint(0, 10, (8,))
 
-    # Record initial loss
+    # Record the loss before the optimizer updates the model.
     initial_loss = criterion(model(x), target).item()
 
-    # Train for a few steps
+    # Apply several optimization steps to the same batch.
     for _ in range(5):
         optimizer.zero_grad()
         loss = criterion(model(x), target)
@@ -214,7 +213,7 @@ def test_baseline_cnn_rejects_invalid_n_classes(invalid_n_classes: object) -> No
 
 def test_baseline_cnn_detects_spatial_dimension_collapse() -> None:
     """Constructor raises ValueError when conv layers cause spatial collapse to zero."""
-    # 4x4 input: after conv0 pool -> 2x2, after conv1 pool -> 1x1, conv2 cannot pool
+    # Pooling reduces 4x4 to 2x2 and then 1x1, so a third block cannot pool.
     with pytest.raises(ValueError, match="too small for 2x2 max-pooling"):
         BaselineCNN(
             in_dims=(3, 4, 4),
@@ -233,9 +232,9 @@ def test_baseline_cnn_forward_rejects_non_tensor() -> None:
 @pytest.mark.parametrize(
     "invalid_shape",
     [
-        (3, 32, 32),        # 3D
+        (3, 32, 32),  # 3D
         (1, 1, 3, 32, 32),  # 5D
-        (2,),               # 1D
+        (2,),  # 1D
     ],
 )
 def test_baseline_cnn_forward_rejects_non_4d_tensor(invalid_shape: tuple[int, ...]) -> None:

@@ -70,9 +70,13 @@ def load_model(
         )
 
     model_meta = checkpoint["model_meta"]
+    if not isinstance(model_meta, dict):
+        raise ValueError(f"Invalid model metadata in '{path}'. Expected a dictionary.")
     module_path = model_meta.get("module_path")
     class_name = model_meta.get("class_name")
     init_args = model_meta.get("init_args", {})
+    if not isinstance(init_args, dict):
+        raise ValueError(f"Invalid constructor arguments in '{path}'. Expected a dictionary.")
 
     if not module_path or not class_name:
         raise ValueError(

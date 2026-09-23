@@ -1,4 +1,9 @@
-"""Load CIFAR-100 datasets with reproducible splits and normalization."""
+"""Load CIFAR-100 data with deterministic splits and training-only normalization.
+
+The loader creates independent training and evaluation transforms, reusable data
+loaders, and class metadata. Normalization statistics are computed from the
+training subset to avoid incorporating validation or test data.
+"""
 
 from __future__ import annotations
 
@@ -18,11 +23,23 @@ from torch.utils.data import DataLoader, Dataset, Subset, random_split
 RANDOM_SEED = 42
 BASE_DATA_DIR = Path(__file__).resolve().parents[3] / "data"
 Transform = Callable[[Any], Tensor]
+IMAGE_TO_TENSOR = transforms.Compose(
+    [transforms.ToImage(), transforms.ToDtype(torch.float32, scale=True)]
+)
 
 
 @dataclass
 class CIFARDataset:
-    """CIFAR-100 data loaders and metadata used by model training."""
+    """Data loaders and metadata required by model training.
+
+    Attributes:
+        train_loader: Shuffled batches from the training split.
+        val_loader: Ordered batches from the validation split.
+        test_loader: Ordered batches from the official test split.
+        classes: Class names ordered by numeric label.
+        classmap: Mapping from numeric label to class name.
+        img_size: Image dimensions in channel-height-width order.
+    """
 
     train_loader: DataLoader
     val_loader: DataLoader
@@ -41,6 +58,9 @@ def get_train_val_split_indices(
     Args:
         dataset: Dataset to split.
         train_split_ratio: Fraction of examples assigned to the training split.
+
+    Returns:
+        Two index sequences for the training and validation splits.
 
     Raises:
         TypeError: If the dataset does not report its length.
@@ -91,20 +111,32 @@ def load_datasets(
     val_indices: Sequence[int] | None = None,
     train_only: bool = False,
 ) -> tuple[datasets.CIFAR100] | tuple[Subset, Subset, datasets.CIFAR100]:
-    """Download CIFAR-100 and construct the requested train, validation, and test datasets.
+    """Load CIFAR-100 and construct the requested dataset splits.
 
-    The training and validation datasets are separate CIFAR-100 instances so they can use
-    different transforms while referring to the same source images.
+    Training and validation use separate dataset instances so they can apply
+    different transforms while selecting examples from the same source split.
+
+    Args:
+        train_transform: Transform applied to training examples.
+        eval_transform: Transform applied to validation and test examples.
+        train_indices: Training indices in the original training dataset.
+        val_indices: Validation indices in the original training dataset.
+        train_only: If true, return only the unpartitioned training dataset.
+
+    Returns:
+        A one-element tuple containing the training dataset when train_only is
+        true; otherwise, a tuple containing the training subset, validation
+        subset, and official test dataset.
 
     Raises:
-        ValueError: If split indices are omitted when requesting all datasets.
+        ValueError: If split indices are omitted when all datasets are requested.
     """
     if not train_only and (train_indices is None or val_indices is None):
         raise ValueError("train_indices and val_indices are required when train_only is False.")
     if train_transform is None:
-        train_transform = transforms.ToTensor()
+        train_transform = IMAGE_TO_TENSOR
     if eval_transform is None:
-        eval_transform = transforms.ToTensor()
+        eval_transform = IMAGE_TO_TENSOR
 
     train_dataset = datasets.CIFAR100(
         root=str(BASE_DATA_DIR),
@@ -138,15 +170,23 @@ def load_datasets(
 
 
 def compute_mean_and_std(dataset: Dataset, indices: Sequence[int]) -> tuple[Tensor, Tensor]:
-    """Calculate per-channel population statistics for a subset of image tensors.
+    """Calculate per-channel population statistics for selected RGB images.
 
-    Dataset items must yield a three-channel image tensor in ``(C, H, W)`` format. The
-    calculation uses float64 accumulation to avoid precision loss across the full dataset.
+    Dataset items must yield image tensors in channel-height-width format.
+    Accumulation uses float64 to limit precision loss across the selected pixels.
+
+    Args:
+        dataset: Dataset yielding an image and target for each item.
+        indices: Dataset indices whose pixels contribute to the statistics.
+
+    Returns:
+        Three-element tensors containing the RGB means and population
+        standard deviations.
 
     Raises:
-        ValueError: If no indices are supplied or an image does not have three channels.
+        ValueError: If no indices are supplied or images are not three-channel batches.
     """
-    if not indices:
+    if len(indices) == 0:
         raise ValueError("indices must contain at least one dataset index.")
 
     loader = DataLoader(Subset(dataset, indices), batch_size=128, shuffle=False, num_workers=0)
@@ -172,14 +212,26 @@ def compute_mean_and_std(dataset: Dataset, indices: Sequence[int]) -> tuple[Tens
 def create_transformers(
     means: Tensor, stds: Tensor
 ) -> tuple[transforms.Compose, transforms.Compose]:
-    """Create matching training and evaluation normalization transforms."""
+    """Create matching image conversion and RGB normalization transforms.
+
+    Args:
+        means: Per-channel means in RGB order.
+        stds: Per-channel standard deviations in RGB order.
+
+    Returns:
+        Equivalent training and evaluation transforms.
+
+    Raises:
+        ValueError: If either statistic does not contain three values or a
+            standard deviation is non-positive.
+    """
     if means.numel() != 3 or stds.numel() != 3:
         raise ValueError("means and stds must each contain one value for every RGB channel.")
     if torch.any(stds <= 0):
         raise ValueError("stds must be strictly positive.")
 
     normalize = transforms.Normalize(mean=means.tolist(), std=stds.tolist())
-    transform = transforms.Compose([transforms.ToTensor(), normalize])
+    transform = transforms.Compose([*IMAGE_TO_TENSOR.transforms, normalize])
     return transform, transform
 
 
@@ -188,10 +240,22 @@ def get_cifar_dataset(
     eval_batchsize: int,
     num_workers: int = 2,
 ) -> CIFARDataset:
-    """Build reproducible CIFAR-100 data loaders and dataset metadata.
+    """Build reproducible CIFAR-100 loaders and class metadata.
 
-    The normalization statistics are calculated from the training split only, preventing
-    validation and test examples from influencing training-time preprocessing.
+    Normalization statistics come from the training subset only, so validation
+    and test examples do not influence preprocessing.
+
+    Args:
+        train_batchsize: Number of examples in each training batch.
+        eval_batchsize: Number of examples in validation and test batches.
+        num_workers: Number of worker processes used by the data loaders.
+
+    Returns:
+        A dataset bundle containing the loaders, class names, label mapping,
+        and image dimensions.
+
+    Raises:
+        ValueError: If a batch size is non-positive or num_workers is negative.
     """
     if train_batchsize <= 0 or eval_batchsize <= 0:
         raise ValueError("train_batchsize and eval_batchsize must be positive.")
@@ -212,7 +276,7 @@ def get_cifar_dataset(
         ),
     )
 
-    # CIFAR-100 exposes labels in both directions; training needs index-to-class names.
+    # Store names by numeric label because model outputs use label indices.
     classmap = {index: name for name, index in train_dataset.class_to_idx.items()}
     image, _ = train_dataset[0]
     if not isinstance(image, Tensor) or image.ndim != 3:
@@ -242,7 +306,7 @@ def get_cifar_dataset(
             num_workers=num_workers,
             pin_memory=pin_memory,
         ),
-        classes=list(train_dataset.classes),
+        classes=[v for k, v in sorted(classmap.items())],
         classmap=classmap,
         img_size=img_size,
     )
@@ -283,7 +347,7 @@ def visualize_cifar_dataset(
     if not classes:
         raise ValueError("CIFAR-100 dataset does not define any classes.")
 
-    # Record the first dataset index for each label in one pass through the targets.
+    # Keep the first matching index for each class while scanning targets once.
     first_indices: dict[int, int] = {}
     for dataset_index, target in enumerate(dataset.targets):
         first_indices.setdefault(target, dataset_index)
@@ -309,7 +373,7 @@ def visualize_cifar_dataset(
         axis.set_title(class_name.replace("_", " "), fontsize=8)
         axis.axis("off")
 
-    # Hide unused grid cells when a dataset has a class count not divisible by columns.
+    # Hide unused cells when the class count does not fill the final row.
     for axis in axes.flat[len(classes) :]:
         axis.axis("off")
 

@@ -1,13 +1,13 @@
-"""Plotting helpers for metrics and image-model diagnostics.
+"""Plot metrics and inspect model outputs with Matplotlib.
 
-The misclassification, feature-map, and augmentation helpers retain the
-28-by-28 single-channel input convention used by the original digit-model
-experiments. Use visualize_cifar_dataset for RGB CIFAR-100 previews.
+Metric plots and confusion matrices support general classification tasks.
+Image-based diagnostic helpers assume 28-by-28 grayscale digit images. Use
+the CIFAR dataset preview function for RGB CIFAR-100 samples.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -175,18 +175,18 @@ def visualize_misclassified(
     max_samples: int = 10,
     save_path: Path | None = None,
 ) -> None:
-    """Plot a grid of sample images that were misclassified by the model.
+    """Plot misclassified 28-by-28 grayscale images.
 
-    If probability scores are provided, the samples with highest prediction
-    confidence on the wrong class (hard negatives) are displayed first.
+    When probabilities are supplied, examples with the highest probability
+    assigned to an incorrect class are shown first.
 
     Args:
-        images: 2D feature matrix of flattened image samples (N, 784).
-        y_true: Ground truth labels.
-        y_pred: Predicted class labels.
-        y_probs: Optional predicted class probability distributions (N, num_classes).
-        max_samples: Maximum number of misclassified samples to display.
-        save_path: Optional output path for the PNG file.
+        images: Flattened grayscale images with shape (N, 784).
+        y_true: Ground-truth labels with shape (N,).
+        y_pred: Predicted labels with shape (N,).
+        y_probs: Optional class probabilities with shape (N, num_classes).
+        max_samples: Maximum number of mistakes to display.
+        save_path: Optional path for the saved PNG image.
     """
     mistake_indices = np.where(y_pred != y_true)[0]
     if len(mistake_indices) == 0:
@@ -243,19 +243,17 @@ def visualize_feature_maps(
     max_channels_per_layer: int = 16,
     save_path: Path | None = None,
 ) -> plt.Figure:
-    """Plot intermediate convolutional activation feature maps for an input image.
+    """Plot convolutional feature maps for one grayscale digit image.
 
     Args:
-        feature_maps: Dictionary mapping layer names (e.g. `"conv1"`, `"conv2"`)
-            to activation tensors of shape `(1, Channels, Height, Width)` or
-            `(Channels, Height, Width)`.
-        raw_image: Optional 2D `(28, 28)` or 1D `(784,)` original image array for reference.
-        max_channels_per_layer: Maximum number of feature map channels to display per layer.
-            Defaults to 16.
-        save_path: Optional output path for the saved PNG figure.
+        feature_maps: Mapping from layer names to activations shaped as
+            (1, channels, height, width) or (channels, height, width).
+        raw_image: Optional 28-by-28 or flattened 784-value input image.
+        max_channels_per_layer: Maximum number of channels shown per layer.
+        save_path: Optional path for the saved PNG image.
 
     Returns:
-        The matplotlib `Figure` containing the feature map visualization grid.
+        The Matplotlib figure containing the input and activation maps.
     """
     n_layers = len(feature_maps)
     if n_layers == 0:
@@ -264,10 +262,10 @@ def visualize_feature_maps(
         ax.axis("off")
         return fig
 
-    # 1. Prepare raw input image if provided
+    # Prepare the optional raw input image.
     has_raw = raw_image is not None
 
-    # 2. Determine grid width (max 8 channels per row per section)
+    # Limit each activation-map row to at most eight channels.
     cols = min(8, max_channels_per_layer)
     section_rows: list[int] = []
 
@@ -288,7 +286,7 @@ def visualize_feature_maps(
 
     current_row = 0
 
-    # 3. Render raw image in top row if available
+    # Place the raw input image above the activation maps.
     if has_raw:
         ax_raw = fig.add_subplot(grid_spec[0, :2])
         if isinstance(raw_image, torch.Tensor):
@@ -304,14 +302,14 @@ def visualize_feature_maps(
         ax_raw.set_title("Input Image (28x28)", fontsize=11, fontweight="bold")
         ax_raw.axis("off")
 
-        # Blank out remaining columns in raw image row
+        # Hide unused cells in the input-image row.
         for c in range(2, cols):
             ax_blank = fig.add_subplot(grid_spec[0, c])
             ax_blank.axis("off")
 
         current_row += 1
 
-    # 4. Render feature maps for each convolutional block
+    # Render the activation maps for each layer.
     for layer_name, tensor in feature_maps.items():
         if tensor.ndim == 4:
             activations = tensor[0].detach().cpu().numpy()
@@ -327,12 +325,12 @@ def visualize_feature_maps(
             ax = fig.add_subplot(grid_spec[r, c])
             feature_slice = activations[ch]
 
-            # Use viridis colormap for activation intensity
+            # Use color to show the relative activation intensity.
             ax.imshow(feature_slice, cmap="viridis")
             ax.set_title(f"{layer_name} ch{ch + 1}\n({h}x{w})", fontsize=8)
             ax.axis("off")
 
-        # Turn off unused subplot axes in the layer's allocated rows
+        # Hide unused cells in the rows allocated to this layer.
         allocated_rows = (num_channels + cols - 1) // cols
         for leftover in range(num_channels, allocated_rows * cols):
             r = current_row + (leftover // cols)
@@ -357,21 +355,25 @@ def visualize_feature_maps(
 
 def visualize_augmentations(
     sample_image: np.ndarray | torch.Tensor,
-    transform: callable | None = None,
+    transform: Callable[[torch.Tensor], torch.Tensor] | None = None,
     num_variations: int = 8,
     save_path: Path | None = None,
 ) -> plt.Figure:
-    """Plot the original digit alongside stochastic data augmentation variations.
+    """Plot a grayscale digit beside independently augmented variations.
 
     Args:
-        sample_image: 1D `(784,)` or 2D `(28, 28)` image array.
-        transform: Callable torchvision transform pipeline.
-        num_variations: Number of stochastic variations to generate. Defaults to 8.
-        save_path: Optional output path for the saved PNG figure.
+        sample_image: Original image as a flattened 784-value array or a
+            28-by-28 array.
+        transform: Optional transform applied to each generated variation.
+        num_variations: Number of augmented samples to draw.
+        save_path: Optional path for the saved PNG image.
 
     Returns:
-        The matplotlib `Figure` containing the augmentation grid.
+        The Matplotlib figure containing the input and generated variations.
     """
+    if num_variations <= 0:
+        raise ValueError("num_variations must be positive.")
+
     if isinstance(sample_image, torch.Tensor):
         base_arr = sample_image.detach().cpu().numpy()
     else:
@@ -383,14 +385,14 @@ def visualize_augmentations(
     total_cols = num_variations + 1
     fig, axes = plt.subplots(1, total_cols, figsize=(2.2 * total_cols, 2.8))
 
-    # Panel 0: Original
+    # Show the original image in the first panel.
     axes[0].imshow(base_arr, cmap="gray")
     axes[0].set_title("Original\n(Input)", fontsize=10, fontweight="bold")
     axes[0].axis("off")
 
     tensor_input = torch.tensor(base_arr, dtype=torch.float32).reshape(1, 28, 28)
 
-    # Panels 1..N: Stochastic Augmented Variations
+    # Generate one independently transformed image per remaining panel.
     for i in range(1, total_cols):
         if transform is not None:
             aug_tensor = transform(tensor_input)

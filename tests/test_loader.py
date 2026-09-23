@@ -24,6 +24,7 @@ class FakeCIFAR100(Dataset):
     class_to_idx = {"apple": 0, "baby": 1}
 
     def __init__(self, root: str, train: bool, download: bool, transform=None) -> None:
+        """Initialize a small synthetic CIFAR-100 split for loader tests."""
         self.root = root
         self.train = train
         self.download = download
@@ -33,9 +34,11 @@ class FakeCIFAR100(Dataset):
         self.targets = [index % len(self.classes) for index in range(size)]
 
     def __len__(self) -> int:
+        """Return the number of synthetic images in this split."""
         return len(self.images)
 
     def __getitem__(self, index: int) -> tuple[Tensor, int]:
+        """Return the indexed image and its synthetic class label."""
         image = self.images[index]
         if self.transform is not None:
             image = self.transform(image)
@@ -85,9 +88,11 @@ def test_load_datasets_applies_independent_train_and_eval_transforms(
     monkeypatch.setattr(loader.datasets, "CIFAR100", FakeCIFAR100)
 
     def train_transform(image: Tensor) -> Tensor:
+        """Offset an image to distinguish the training transform."""
         return image + 1
 
     def eval_transform(image: Tensor) -> Tensor:
+        """Scale an image to distinguish the evaluation transform."""
         return image * 2
 
     train_subset, val_subset, test_dataset = loader.load_datasets(
@@ -145,6 +150,7 @@ def test_get_cifar_dataset_builds_loaders_and_metadata(monkeypatch: pytest.Monke
     raw_train_dataset = FakeCIFAR100(root="data", train=True, download=False)
 
     def fake_load_datasets(**kwargs):
+        """Return synthetic datasets for either loader mode."""
         if kwargs.get("train_only"):
             return (raw_train_dataset,)
         return (
@@ -181,6 +187,7 @@ def test_visualize_cifar_dataset_saves_one_image_for_each_class(
     show_calls: list[None] = []
 
     def fake_show() -> None:
+        """Record that the plotting helper requested an interactive display."""
         show_calls.append(None)
 
     monkeypatch.setattr(loader.plt, "show", fake_show)

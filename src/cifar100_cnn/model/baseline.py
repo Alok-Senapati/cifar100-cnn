@@ -60,7 +60,7 @@ class BaselineCNN(nn.Module):
         """
         super().__init__()
 
-        # Validate in_dims
+        # Validate the input channel and spatial dimensions.
         if not isinstance(in_dims, (tuple, list)):
             raise TypeError(
                 f"in_dims must be a tuple or list of 3 integers, got {type(in_dims).__name__}."
@@ -75,7 +75,7 @@ class BaselineCNN(nn.Module):
                 raise ValueError(f"in_dims {name} must be a positive integer, got {dim}.")
         self.in_dims: tuple[int, int, int] = (in_dims[0], in_dims[1], in_dims[2])
 
-        # Validate conv_channels
+        # Validate the output channels for each convolutional block.
         if not isinstance(conv_channels, (list, tuple)):
             raise TypeError(
                 "conv_channels must be a list or tuple of integers, "
@@ -88,22 +88,22 @@ class BaselineCNN(nn.Module):
                 raise ValueError(f"conv_channels[{idx}] must be a positive integer, got {ch}.")
         self.conv_channels: tuple[int, ...] = tuple(conv_channels)
 
-        # Validate fc_hidden
+        # Validate the classifier hidden-layer width.
         if not isinstance(fc_hidden, int) or isinstance(fc_hidden, bool) or fc_hidden <= 0:
             raise ValueError(f"fc_hidden must be a positive integer, got {fc_hidden}.")
         self.fc_hidden = fc_hidden
 
-        # Validate n_classes
+        # Validate the number of output classes.
         if not isinstance(n_classes, int) or isinstance(n_classes, bool) or n_classes <= 0:
             raise ValueError(f"n_classes must be a positive integer, got {n_classes}.")
         self.n_classes = n_classes
 
-        # Construct convolutional blocks and compute downstream feature dimensions
+        # Build each convolutional block and track its output dimensions.
         layer_in_dims = self.in_dims
         conv_layers_map: dict[str, nn.Sequential] = {}
         for idx, channels in enumerate(conv_channels):
             current_h, current_w = layer_in_dims[1], layer_in_dims[2]
-            # MaxPool2d(2, stride=2) requires spatial dimensions >= 2 to avoid collapse to 0
+            # Each pooling layer needs at least two pixels in both spatial dimensions.
             if current_h < 2 or current_w < 2:
                 raise ValueError(
                     f"Input spatial dimensions ({current_h}, {current_w}) at conv block {idx} "
@@ -116,14 +116,14 @@ class BaselineCNN(nn.Module):
                 nn.ReLU(),
                 nn.MaxPool2d(kernel_size=2, stride=2),
             )
-            # Spatial dimensions are halved by 2x2 max-pooling with stride 2
+            # Pooling halves each spatial dimension using floor division.
             layer_in_dims = (channels, layer_in_dims[1] // 2, layer_in_dims[2] // 2)
 
-        # Total flattened features going into the classifier
+        # The classifier receives every value in the final feature map.
         feature_dims = int(reduce(lambda i, j: i * j, layer_in_dims))
         self.conv_layers = nn.ModuleDict(conv_layers_map)
 
-        # Classifier head (flatten -> linear -> relu -> linear)
+        # Flatten the final feature map and map it to class logits.
         self.classifier_layer = nn.Sequential(
             nn.Flatten(),
             nn.Linear(feature_dims, fc_hidden),
@@ -162,4 +162,3 @@ class BaselineCNN(nn.Module):
         for layer in self.conv_layers.values():
             conv_layer_out = layer(conv_layer_out)
         return self.classifier_layer(conv_layer_out)
-
