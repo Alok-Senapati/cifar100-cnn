@@ -20,7 +20,7 @@ from cifar100_cnn.model.trainer import evaluate, get_optimizer, train
 from cifar100_cnn.utils.visualizer import visualize_confusion_matrix
 
 RANDOM_SEED = 42
-BASE_ARTIFACT_DIRECTORY = Path(__file__).resolve().parents[1] / "artifacts"
+BASE_ARTIFACT_DIRECTORY = Path(__file__).resolve().parents[1] / "artifacts" / "baseline_cnn"
 
 
 def parse_arguments() -> BaseLineArgs:
