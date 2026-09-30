@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -88,3 +89,31 @@ def test_load_model_rejects_malformed_metadata(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="model metadata"):
         load_model(checkpoint_path)
+
+
+@pytest.mark.parametrize("early_stopping, expected_epochs", [(True, 2), (False, 4)])
+def test_early_stopping_controls_training_duration(
+    tmp_path: Path, early_stopping: bool, expected_epochs: int
+) -> None:
+    """A flat validation loss stops training only when early stopping is enabled."""
+    model = nn.Linear(2, 2)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.0)
+    loader = _loader()
+
+    with patch.object(optimizer, "step", wraps=optimizer.step) as step:
+        train(
+            model=model,
+            criterion=nn.CrossEntropyLoss(),
+            optimizer=optimizer,
+            epochs=4,
+            train_loader=loader,
+            val_loader=loader,
+            device="cpu",
+            model_init_args={"in_features": 2, "out_features": 2},
+            output_path=tmp_path,
+            early_stopping=early_stopping,
+            patience=1,
+            use_tensorboard=False,
+        )
+
+    assert step.call_count == expected_epochs * len(loader)

@@ -34,6 +34,9 @@ def parse_arguments() -> BaseLineArgs:
     parser.add_argument("--batch-size", type=int, default=256, help="Training batch size.")
     parser.add_argument("--weight-decay", type=float, default=0.0, help="Optimizer weight decay.")
     parser.add_argument(
+        "--training-name", type=str, default="baseline-cnn", help="Model training name."
+    )
+    parser.add_argument(
         "--conv-channels",
         type=int,
         nargs="+",
@@ -59,6 +62,18 @@ def parse_arguments() -> BaseLineArgs:
         default=True,
         help="Enable or disable TensorBoard logging.",
     )
+    parser.add_argument(
+        "--early-stop",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Enable or disable Early Stopping.",
+    )
+    parser.add_argument(
+        "--patience",
+        type=int,
+        default=20,
+        help="Patience for early stopping.",
+    )
     return parser.parse_args(namespace=BaseLineArgs())
 
 
@@ -68,7 +83,7 @@ def main() -> None:
     torch.manual_seed(RANDOM_SEED)
 
     run_id = str(time.time_ns())
-    artifacts_dir = BASE_ARTIFACT_DIRECTORY / run_id
+    artifacts_dir = BASE_ARTIFACT_DIRECTORY / f"{args.training_name}_{run_id}"
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
     dataset = get_cifar_dataset(train_batchsize=args.batch_size, eval_batchsize=256)
@@ -104,6 +119,8 @@ def main() -> None:
             device=device,
             model_init_args=model_init_args,
             output_path=artifacts_dir,
+            early_stopping=args.early_stop,
+            patience=args.patience,
             use_tensorboard=args.use_tensorboard,
             writer=writer,
         )

@@ -74,6 +74,7 @@ def train(
     model_init_args: dict[str, Any],
     lr_scheduler: LRScheduler | None = None,
     output_path: Path | None = None,
+    early_stopping: bool = False,
     patience: int = 10,
     use_tensorboard: bool = True,
     writer: SummaryWriter | None = None,
@@ -93,6 +94,7 @@ def train(
         lr_scheduler: Optional scheduler stepped once per epoch. Plateau
             schedulers receive the validation loss.
         output_path: Directory for the best checkpoint and metric plots.
+        early_stopping: Enable or disable Early Stopping.
         patience: Consecutive validation epochs without improvement allowed
             before early stopping.
         use_tensorboard: Whether to create a writer when none is supplied.
@@ -210,7 +212,7 @@ def train(
             else:
                 degrade_counter += 1
 
-            if degrade_counter >= patience:
+            if early_stopping and degrade_counter >= patience:
                 print(f"Early stopping at epoch: {epoch}...")
                 break
 
