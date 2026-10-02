@@ -54,6 +54,8 @@ class GAPClassifierArgs:
         use_tensorboard: Whether to write training metrics to TensorBoard.
         early_stop: Enable or disable early stopping.
         patience: No of epochs for early stopping.
+        initialize_weights: Apply custom GAP model initialization instead of
+            retaining PyTorch layer defaults.
     """
 
     epochs: int = 100
@@ -67,3 +69,4 @@ class GAPClassifierArgs:
     use_tensorboard: bool = True
     early_stop: bool = False
     patience: int = 20
+    initialize_weights: bool = True

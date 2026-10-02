@@ -63,6 +63,12 @@ def parse_arguments() -> GAPClassifierArgs:
         help="Enable or disable Early Stopping.",
     )
     parser.add_argument(
+        "--initialize-weights",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Apply custom weight initialization; disable to retain PyTorch defaults.",
+    )
+    parser.add_argument(
         "--patience",
         type=int,
         default=20,
@@ -92,6 +98,7 @@ def main() -> None:
         "in_dims": dataset.img_size,
         "conv_channels": args.conv_channels,
         "n_classes": len(dataset.classes),
+        "initialize_weights": args.initialize_weights,
     }
     model = ReducedPoolingGAPCNN(**model_init_args).to(device)
     optimizer = get_optimizer(model, args.optimizer, args.lr, args.weight_decay, args.momentum)

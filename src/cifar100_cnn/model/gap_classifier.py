@@ -38,6 +38,7 @@ class ReducedPoolingGAPCNN(nn.Module):
         in_dims: tuple[int, int, int] | Sequence[int],
         conv_channels: Sequence[int],
         n_classes: int = 100,
+        initialize_weights: bool = True,
     ) -> None:
         """Initialize the reduced-pooling GAP model.
 
@@ -45,6 +46,9 @@ class ReducedPoolingGAPCNN(nn.Module):
             in_dims: Dimensions of input images as (channels, height, width).
             conv_channels: Sequence of output channels for each conv block.
             n_classes: Number of output classification targets. Defaults to 100.
+            initialize_weights: Apply Kaiming normal initialization to convolutions,
+                Xavier uniform initialization to linear weights, and zero biases.
+                Defaults to True. False retains PyTorch layer initialization.
 
         Raises:
             TypeError: If arguments are of incorrect types.
@@ -124,6 +128,28 @@ class ReducedPoolingGAPCNN(nn.Module):
             nn.Flatten(),
             nn.Linear(conv_channels[-1], n_classes),
         )
+
+        if initialize_weights:
+            # Apply the optional initialization only after all layers are registered.
+            print("Initializing Model Weights..")
+            self.apply(self._init_weights)
+
+    def _init_weights(self, module: nn.Module) -> None:
+        """Initialize a layer in place when visited by ``Module.apply``.
+
+        Convolutions use Kaiming normal weights with fan-out scaling for ReLU;
+        the linear classifier uses Xavier uniform weights. BatchNorm scales,
+        if present, are set to one, and available biases are set to zero.
+        """
+        if isinstance(module, nn.Conv2d):
+            nn.init.kaiming_normal_(module.weight, mode="fan_out", nonlinearity="relu")
+        elif isinstance(module, nn.Linear):
+            nn.init.xavier_uniform_(module.weight)
+        elif isinstance(module, nn.BatchNorm2d):
+            nn.init.ones_(module.weight)
+
+        if hasattr(module, "bias") and module.bias is not None:
+            nn.init.zeros_(module.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Perform forward pass through convolutional layers and classification head.
