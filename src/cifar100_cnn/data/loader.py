@@ -39,6 +39,8 @@ class CIFARDataset:
         classes: Class names ordered by numeric label.
         classmap: Mapping from numeric label to class name.
         img_size: Image dimensions in channel-height-width order.
+        means: Per-channel RGB means computed from the unaugmented training subset.
+        stds: Per-channel RGB standard deviations from the same training subset.
     """
 
     train_loader: DataLoader
@@ -47,6 +49,8 @@ class CIFARDataset:
     classes: list[str]
     classmap: dict[int, str]
     img_size: tuple[int, int, int]
+    means: list[float]
+    stds: list[float]
 
 
 def get_train_val_split_indices(
@@ -210,16 +214,23 @@ def compute_mean_and_std(dataset: Dataset, indices: Sequence[int]) -> tuple[Tens
 
 
 def create_transformers(
-    means: Tensor, stds: Tensor
+    means: Tensor, stds: Tensor, augment: bool = False, gpu_transforms: bool = False
 ) -> tuple[transforms.Compose, transforms.Compose]:
-    """Create matching image conversion and RGB normalization transforms.
+    """Create training and evaluation pipelines with optional training augmentation.
 
     Args:
         means: Per-channel means in RGB order.
         stds: Per-channel standard deviations in RGB order.
+        augment: Add a random 32x32 crop with four-pixel padding and a random
+            horizontal flip to training images.
+        gpu_transforms: When augment is True, defer training augmentation and
+            normalization to the caller's device transform. Ignored otherwise.
 
     Returns:
-        Equivalent training and evaluation transforms.
+        Training and evaluation transforms. Evaluation always converts images
+        to float32 and normalizes them. With GPU augmentation enabled, training
+        only converts images to float32 in [0, 1]; the caller must apply
+        get_gpu_train_transform before passing those batches to the model.
 
     Raises:
         ValueError: If either statistic does not contain three values or a
@@ -231,14 +242,30 @@ def create_transformers(
         raise ValueError("stds must be strictly positive.")
 
     normalize = transforms.Normalize(mean=means.tolist(), std=stds.tolist())
-    transform = transforms.Compose([*IMAGE_TO_TENSOR.transforms, normalize])
-    return transform, transform
+
+    if augment:
+        if gpu_transforms:
+            # Defer normalization too, so padding is applied in the original pixel scale.
+            train_transform = transforms.Compose([*IMAGE_TO_TENSOR.transforms])
+        else:
+            train_transform = transforms.Compose(
+                [
+                    transforms.ToImage(),
+                    transforms.RandomCrop(32, padding=4),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToDtype(torch.float32, scale=True),
+                    normalize,
+                ]
+            )
+    else:
+        train_transform = transforms.Compose([*IMAGE_TO_TENSOR.transforms, normalize])
+
+    eval_transform = transforms.Compose([*IMAGE_TO_TENSOR.transforms, normalize])
+    return train_transform, eval_transform
 
 
 def get_cifar_dataset(
-    train_batchsize: int,
-    eval_batchsize: int,
-    num_workers: int = 2,
+    train_batchsize: int, eval_batchsize: int, num_workers: int = 2, augment: bool = False
 ) -> CIFARDataset:
     """Build reproducible CIFAR-100 loaders and class metadata.
 
@@ -249,10 +276,14 @@ def get_cifar_dataset(
         train_batchsize: Number of examples in each training batch.
         eval_batchsize: Number of examples in validation and test batches.
         num_workers: Number of worker processes used by the data loaders.
+        augment: Enable random crops and horizontal flips for training only.
+            When CUDA is available, defer augmentation and normalization to
+            get_gpu_train_transform in the training loop. Otherwise perform
+            both in the dataset transform.
 
     Returns:
         A dataset bundle containing the loaders, class names, label mapping,
-        and image dimensions.
+        image dimensions, and training-subset normalization statistics.
 
     Raises:
         ValueError: If a batch size is non-positive or num_workers is negative.
@@ -265,7 +296,9 @@ def get_cifar_dataset(
     train_dataset = cast(tuple[datasets.CIFAR100], load_datasets(train_only=True))[0]
     train_indices, val_indices = get_train_val_split_indices(train_dataset)
     means, stds = compute_mean_and_std(train_dataset, train_indices)
-    train_transform, eval_transform = create_transformers(means, stds)
+    train_transform, eval_transform = create_transformers(
+        means, stds, augment=augment, gpu_transforms=torch.cuda.is_available()
+    )
     train_subset, val_subset, test_dataset = cast(
         tuple[Subset, Subset, datasets.CIFAR100],
         load_datasets(
@@ -309,6 +342,8 @@ def get_cifar_dataset(
         classes=[v for k, v in sorted(classmap.items())],
         classmap=classmap,
         img_size=img_size,
+        means=means.tolist(),
+        stds=stds.tolist(),
     )
 
 

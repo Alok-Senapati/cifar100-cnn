@@ -162,7 +162,7 @@ def test_get_cifar_dataset_builds_loaders_and_metadata(monkeypatch: pytest.Monke
     monkeypatch.setattr(loader, "load_datasets", fake_load_datasets)
     monkeypatch.setattr(loader, "compute_mean_and_std", lambda *_: (torch.zeros(3), torch.ones(3)))
     monkeypatch.setattr(
-        loader, "create_transformers", lambda *_: (lambda image: image, lambda image: image)
+        loader, "create_transformers", lambda *_, **__: (lambda image: image, lambda image: image)
     )
 
     cifar_dataset = loader.get_cifar_dataset(train_batchsize=4, eval_batchsize=3, num_workers=0)

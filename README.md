@@ -124,6 +124,32 @@ When training through the Python API, include `use_batchnorm=True` in the
 same architecture. Custom initialization sets BatchNorm scales to one and
 biases to zero.
 
+### GAP training augmentation
+
+Use `--use-augmentation` to enable random 32x32 crops with four-pixel zero
+padding and horizontal flips with probability 0.5. Augmentation is disabled
+by default and can be explicitly disabled with `--no-use-augmentation`.
+
+```powershell
+uv run python scripts/train_gap_classifier.py --training-name gap-augmented --use-augmentation
+```
+
+On CUDA, the loader converts training images to float32 in [0, 1], and the
+training loop applies augmentation followed by normalization after moving the
+batch to the GPU. Each batched transform call shares its sampled crop and flip
+across the batch. On CPU or MPS, augmentation and normalization run per image
+in the dataset transform before batching.
+
+Validation and test images are always normalized without random augmentation.
+RGB means and standard deviations are computed from the unaugmented training
+subset and exposed as `CIFARDataset.means` and `CIFARDataset.stds`.
+The augmentation flag is recorded in `training_args.json`.
+
+When using `get_cifar_dataset(augment=True)` directly on a CUDA-capable machine,
+pass `get_gpu_train_transform(dataset.means, dataset.stds)` to the trainer's
+`transform` argument. The returned training batches still need augmentation
+and normalization. The GAP script performs this wiring automatically.
+
 ## Inference app
 
 Launch the Streamlit dashboard to select a saved model and run inference on

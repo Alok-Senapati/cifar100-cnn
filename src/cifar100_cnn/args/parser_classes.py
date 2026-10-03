@@ -61,6 +61,7 @@ class GAPClassifierArgs:
         min_lr: Learning rate floor for cosine and plateau scheduling; unused by step.
         lr_decay_factor: Multiplicative factor for plateau and step LR decay.
         lr_step_size: Epoch interval for StepLR decay.
+        use_augmentation: Apply random crops and horizontal flips to training images only.
     """
 
     epochs: int = 100
@@ -79,3 +80,4 @@ class GAPClassifierArgs:
     min_lr: float = 1e-6
     lr_decay_factor: float = 0.5
     lr_step_size: int = 5
+    use_augmentation: bool = False

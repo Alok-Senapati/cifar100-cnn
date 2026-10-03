@@ -15,6 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from cifar100_cnn.args import GAPClassifierArgs
 from cifar100_cnn.data.loader import get_cifar_dataset
+from cifar100_cnn.data.transforms import get_gpu_train_transform
 from cifar100_cnn.model import evaluate, get_optimizer, get_scheduler, train
 from cifar100_cnn.model.gap_classifier import ReducedPoolingGAPCNN
 from cifar100_cnn.utils.visualizer import visualize_confusion_matrix
@@ -99,6 +100,12 @@ def parse_arguments() -> GAPClassifierArgs:
         default=5,
         help="Period of learning rate decay in epochs for StepLR.",
     )
+    parser.add_argument(
+        "--use-augmentation",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Apply random crops and horizontal flips to training images only.",
+    )
     return parser.parse_args(namespace=GAPClassifierArgs())
 
 
@@ -111,7 +118,9 @@ def main() -> None:
     artifacts_dir = BASE_ARTIFACT_DIRECTORY / f"{args.training_name}_{run_id}"
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
-    dataset = get_cifar_dataset(train_batchsize=args.batch_size, eval_batchsize=256)
+    dataset = get_cifar_dataset(
+        train_batchsize=args.batch_size, eval_batchsize=256, augment=args.use_augmentation
+    )
     if torch.cuda.is_available():
         device = torch.device("cuda")
     elif torch.backends.mps.is_available():
@@ -128,6 +137,15 @@ def main() -> None:
     model = ReducedPoolingGAPCNN(**model_init_args).to(device)
     optimizer = get_optimizer(model, args.optimizer, args.lr, args.weight_decay, args.momentum)
     criterion = nn.CrossEntropyLoss()
+
+    gpu_transform = None
+
+    if args.use_augmentation and device.type == "cuda":
+        # CUDA training batches arrive scaled but unnormalized; finish preprocessing here.
+        gpu_transform = get_gpu_train_transform(
+            means=dataset.means,
+            stds=dataset.stds,
+        ).to(device)
 
     lr_scheduler = get_scheduler(
         optimizer=optimizer,
@@ -157,6 +175,7 @@ def main() -> None:
             use_tensorboard=args.use_tensorboard,
             writer=writer,
             lr_scheduler=lr_scheduler,
+            transform=gpu_transform,
         )
 
         # Keep the numeric label IDs expected by scikit-learn and the plot helper.
