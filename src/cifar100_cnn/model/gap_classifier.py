@@ -18,8 +18,9 @@ class ReducedPoolingGAPCNN(nn.Module):
 
     Each convolutional block comprises:
         1. 2D Convolution (3x3 kernel, stride 1, padding 1)
-        2. ReLU activation
-        3. Max pooling (2x2, stride 2) after every second and the last block
+        2. Optional BatchNorm2d
+        3. ReLU activation
+        4. Max pooling (2x2, stride 2) after every second and the last block
 
     Global average pooling reduces each channel to one value. The classifier
     flattens these channel values and maps them directly to class logits.
@@ -39,6 +40,7 @@ class ReducedPoolingGAPCNN(nn.Module):
         conv_channels: Sequence[int],
         n_classes: int = 100,
         initialize_weights: bool = True,
+        use_batchnorm: bool = False,
     ) -> None:
         """Initialize the reduced-pooling GAP model.
 
@@ -49,6 +51,9 @@ class ReducedPoolingGAPCNN(nn.Module):
             initialize_weights: Apply Kaiming normal initialization to convolutions,
                 Xavier uniform initialization to linear weights, and zero biases.
                 Defaults to True. False retains PyTorch layer initialization.
+            use_batchnorm: Insert BatchNorm2d between each convolution and ReLU.
+                Defaults to False. Custom initialization sets its scale to one
+                and bias to zero when initialize_weights is True.
 
         Raises:
             TypeError: If arguments are of incorrect types.
@@ -106,9 +111,13 @@ class ReducedPoolingGAPCNN(nn.Module):
                 )
 
             sequential_layers: list[nn.Module] = [
-                nn.Conv2d(layer_in_dims[0], channels, kernel_size=3, stride=1, padding=1),
-                nn.ReLU(),
+                nn.Conv2d(layer_in_dims[0], channels, kernel_size=3, stride=1, padding=1)
             ]
+
+            if use_batchnorm:
+                # Normalize convolution outputs before applying the activation.
+                sequential_layers.append(nn.BatchNorm2d(channels))
+            sequential_layers.append(nn.ReLU())
 
             if should_pool:
                 # Pooling halves each spatial dimension using floor division.

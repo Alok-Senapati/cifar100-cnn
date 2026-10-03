@@ -16,7 +16,7 @@ import torch
 import torch.nn as nn
 from sklearn.metrics import classification_report
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import LRScheduler, ReduceLROnPlateau
+from torch.optim.lr_scheduler import CosineAnnealingLR, LRScheduler, ReduceLROnPlateau, StepLR
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -60,6 +60,45 @@ def get_optimizer(
 
     valid = ["adam", "adamw", "sgd"]
     raise ValueError(f"Invalid optimizer. Please select from {valid}.")
+
+
+def get_scheduler(
+    optimizer: Optimizer,
+    scheduler_name: Literal["none", "step", "cosine", "plateau"],
+    min_lr: float,
+    lr_decay_factor: float,
+    lr_step_size: int,
+) -> LRScheduler | None:
+    """Create a learning rate scheduler for epoch-level updates.
+
+    Args:
+        optimizer: Optimizer whose learning rate will be updated.
+        scheduler_name: One of none, step, cosine, or plateau.
+        min_lr: Minimum rate for cosine and plateau; ignored by step.
+        lr_decay_factor: Multiplicative decay factor for step and plateau.
+        lr_step_size: Epoch interval between StepLR decays; ignored otherwise.
+
+    Returns:
+        The requested scheduler, or None for none or an unrecognized name.
+
+    Notes:
+        Cosine scheduling uses a fixed T_max of 100, independent of the requested
+        training duration. Plateau scheduling monitors validation loss in min
+        mode with patience 3. The training loop steps schedulers after each
+        completed epoch and passes validation loss to ReduceLROnPlateau.
+    """
+    match scheduler_name:
+        case "step":
+            return StepLR(optimizer=optimizer, step_size=lr_step_size, gamma=lr_decay_factor)
+        case "cosine":
+            # This period is fixed rather than derived from the training epoch limit.
+            return CosineAnnealingLR(optimizer=optimizer, T_max=100, eta_min=min_lr)
+        case "plateau":
+            return ReduceLROnPlateau(
+                optimizer=optimizer, mode="min", factor=lr_decay_factor, patience=3, min_lr=min_lr
+            )
+        case _:
+            return None
 
 
 @section_printer("Model Training")

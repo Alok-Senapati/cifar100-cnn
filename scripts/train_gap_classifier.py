@@ -15,8 +15,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 from cifar100_cnn.args import GAPClassifierArgs
 from cifar100_cnn.data.loader import get_cifar_dataset
+from cifar100_cnn.model import evaluate, get_optimizer, get_scheduler, train
 from cifar100_cnn.model.gap_classifier import ReducedPoolingGAPCNN
-from cifar100_cnn.model.trainer import evaluate, get_optimizer, train
 from cifar100_cnn.utils.visualizer import visualize_confusion_matrix
 
 RANDOM_SEED = 42
@@ -74,6 +74,31 @@ def parse_arguments() -> GAPClassifierArgs:
         default=20,
         help="Patience for early stopping.",
     )
+    parser.add_argument(
+        "--scheduler",
+        type=str,
+        choices=["none", "step", "cosine", "plateau"],
+        default="none",
+        help="Learning rate scheduler family.",
+    )
+    parser.add_argument(
+        "--min-lr",
+        type=float,
+        default=1e-6,
+        help="Minimum learning rate for cosine and plateau schedulers; unused by step.",
+    )
+    parser.add_argument(
+        "--lr-decay-factor",
+        type=float,
+        default=0.5,
+        help="Multiplicative learning rate decay factor for step and plateau schedulers.",
+    )
+    parser.add_argument(
+        "--lr-step-size",
+        type=int,
+        default=5,
+        help="Period of learning rate decay in epochs for StepLR.",
+    )
     return parser.parse_args(namespace=GAPClassifierArgs())
 
 
@@ -104,6 +129,14 @@ def main() -> None:
     optimizer = get_optimizer(model, args.optimizer, args.lr, args.weight_decay, args.momentum)
     criterion = nn.CrossEntropyLoss()
 
+    lr_scheduler = get_scheduler(
+        optimizer=optimizer,
+        scheduler_name=args.scheduler,
+        min_lr=args.min_lr,
+        lr_decay_factor=args.lr_decay_factor,
+        lr_step_size=args.lr_step_size,
+    )
+
     writer: SummaryWriter | None = None
     try:
         if args.use_tensorboard:
@@ -123,6 +156,7 @@ def main() -> None:
             patience=args.patience,
             use_tensorboard=args.use_tensorboard,
             writer=writer,
+            lr_scheduler=lr_scheduler,
         )
 
         # Keep the numeric label IDs expected by scikit-learn and the plot helper.

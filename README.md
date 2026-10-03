@@ -79,6 +79,51 @@ The initialization choice is saved in `training_args.json` and the checkpoint's
 constructor arguments. Loading a checkpoint reconstructs the model and then
 restores its saved weights, replacing the initial values.
 
+### GAP learning rate scheduling
+
+The GAP training script accepts `--scheduler none|step|cosine|plateau`.
+The default, `none`, keeps the optimizer learning rate constant.
+
+| Scheduler | Behavior | Options used |
+|---|---|---|
+| `step` | Multiply the rate every specified number of epochs | `--lr-step-size` (5), `--lr-decay-factor` (0.5) |
+| `cosine` | Cosine annealing with fixed `T_max=100` | `--min-lr` (0.000001) |
+| `plateau` | Reduce the rate when validation loss stops improving, with patience 3 | `--lr-decay-factor` (0.5), `--min-lr` (0.000001) |
+
+```powershell
+uv run python scripts/train_gap_classifier.py --training-name gap-step --scheduler step --lr-step-size 10 --lr-decay-factor 0.5
+uv run python scripts/train_gap_classifier.py --training-name gap-plateau --scheduler plateau --min-lr 0.000001
+```
+
+Scheduler updates happen at the end of an epoch; the logged rate is the rate
+used during that epoch. An epoch that triggers early stopping exits before
+the scheduler update. Scheduler settings are saved in `training_args.json`.
+Step scheduling does not use `--min-lr`. Changing `--epochs` does not change
+the cosine period; after 100 scheduler steps, its rate can rise again.
+The `--patience` option controls early stopping, while plateau scheduler
+patience remains fixed at 3.
+
+### Optional GAP BatchNorm
+
+The model constructor accepts `use_batchnorm=True` to insert `BatchNorm2d`
+between every convolution and ReLU:
+
+```python
+from cifar100_cnn.model.gap_classifier import ReducedPoolingGAPCNN
+
+model = ReducedPoolingGAPCNN(
+    in_dims=(3, 32, 32),
+    conv_channels=[32, 64, 128],
+    use_batchnorm=True,
+)
+```
+
+BatchNorm is disabled by default and currently has no training CLI flag.
+When training through the Python API, include `use_batchnorm=True` in the
+`model_init_args` passed to `train` so checkpoint loading reconstructs the
+same architecture. Custom initialization sets BatchNorm scales to one and
+biases to zero.
+
 ## Inference app
 
 Launch the Streamlit dashboard to select a saved model and run inference on

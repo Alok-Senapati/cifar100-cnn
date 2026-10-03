@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Literal
 
 
 @dataclass
@@ -56,6 +57,10 @@ class GAPClassifierArgs:
         patience: No of epochs for early stopping.
         initialize_weights: Apply custom GAP model initialization instead of
             retaining PyTorch layer defaults.
+        scheduler: Scheduler family to use for dynamic learning rate updates.
+        min_lr: Learning rate floor for cosine and plateau scheduling; unused by step.
+        lr_decay_factor: Multiplicative factor for plateau and step LR decay.
+        lr_step_size: Epoch interval for StepLR decay.
     """
 
     epochs: int = 100
@@ -70,3 +75,7 @@ class GAPClassifierArgs:
     early_stop: bool = False
     patience: int = 20
     initialize_weights: bool = True
+    scheduler: Literal["none", "cosine", "plateau", "step"] = "none"
+    min_lr: float = 1e-6
+    lr_decay_factor: float = 0.5
+    lr_step_size: int = 5
