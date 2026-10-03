@@ -51,7 +51,8 @@ class ReducedPoolingGAPCNN(nn.Module):
             initialize_weights: Apply Kaiming normal initialization to convolutions,
                 Xavier uniform initialization to linear weights, and zero biases.
                 Defaults to True. False retains PyTorch layer initialization.
-            use_batchnorm: Insert BatchNorm2d between each convolution and ReLU.
+            use_batchnorm: Insert BatchNorm2d between each convolution and ReLU
+                and disable convolution biases, since BatchNorm provides an offset.
                 Defaults to False. Custom initialization sets its scale to one
                 and bias to zero when initialize_weights is True.
 
@@ -110,8 +111,16 @@ class ReducedPoolingGAPCNN(nn.Module):
                     f"or use larger input dimensions."
                 )
 
+            # BatchNorm supplies a learned offset, making the convolution bias redundant.
             sequential_layers: list[nn.Module] = [
-                nn.Conv2d(layer_in_dims[0], channels, kernel_size=3, stride=1, padding=1)
+                nn.Conv2d(
+                    layer_in_dims[0],
+                    channels,
+                    kernel_size=3,
+                    stride=1,
+                    padding=1,
+                    bias=not use_batchnorm,
+                )
             ]
 
             if use_batchnorm:

@@ -106,6 +106,12 @@ def parse_arguments() -> GAPClassifierArgs:
         default=False,
         help="Apply random crops and horizontal flips to training images only.",
     )
+    parser.add_argument(
+        "--use-batchnorm",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Insert BatchNorm between each convolution and ReLU; disable convolution biases.",
+    )
     return parser.parse_args(namespace=GAPClassifierArgs())
 
 
@@ -133,6 +139,7 @@ def main() -> None:
         "conv_channels": args.conv_channels,
         "n_classes": len(dataset.classes),
         "initialize_weights": args.initialize_weights,
+        "use_batchnorm": args.use_batchnorm,
     }
     model = ReducedPoolingGAPCNN(**model_init_args).to(device)
     optimizer = get_optimizer(model, args.optimizer, args.lr, args.weight_decay, args.momentum)

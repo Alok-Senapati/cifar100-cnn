@@ -118,7 +118,17 @@ model = ReducedPoolingGAPCNN(
 )
 ```
 
-BatchNorm is disabled by default and currently has no training CLI flag.
+BatchNorm is disabled by default. Enable it in the GAP training script with
+`--use-batchnorm`, or explicitly disable it with `--no-use-batchnorm`:
+
+```powershell
+uv run python scripts/train_gap_classifier.py --training-name gap-batchnorm --use-batchnorm
+```
+
+With BatchNorm enabled, convolution biases are disabled because BatchNorm
+provides a learned offset. The output linear layer retains its bias. The CLI
+saves the choice in `training_args.json` and checkpoint constructor arguments.
+
 When training through the Python API, include `use_batchnorm=True` in the
 `model_init_args` passed to `train` so checkpoint loading reconstructs the
 same architecture. Custom initialization sets BatchNorm scales to one and
