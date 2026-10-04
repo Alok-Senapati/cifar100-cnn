@@ -146,9 +146,11 @@ uv run python scripts/train_gap_classifier.py --training-name gap-augmented --us
 
 On CUDA, the loader converts training images to float32 in [0, 1], and the
 training loop applies augmentation followed by normalization after moving the
-batch to the GPU. Each batched transform call shares its sampled crop and flip
-across the batch. On CPU or MPS, augmentation and normalization run per image
-in the dataset transform before batching.
+batch to the GPU. `PerSampleBatchTransform` applies the transform separately
+to each image and stacks the results, so crop offsets and flip decisions are
+sampled independently within a batch. This uses per-image calls on the GPU
+rather than one vectorized augmentation call. On CPU or MPS, augmentation and
+normalization run per image in the dataset transform before batching.
 
 Validation and test images are always normalized without random augmentation.
 RGB means and standard deviations are computed from the unaugmented training
