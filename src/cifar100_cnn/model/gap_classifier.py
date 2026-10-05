@@ -161,13 +161,17 @@ class ReducedPoolingGAPCNN(nn.Module):
         """
         if isinstance(module, nn.Conv2d):
             nn.init.kaiming_normal_(module.weight, mode="fan_out", nonlinearity="relu")
+            if module.bias is not None:
+                nn.init.zeros_(module.bias)
         elif isinstance(module, nn.Linear):
             nn.init.xavier_uniform_(module.weight)
+            if module.bias is not None:
+                nn.init.zeros_(module.bias)
         elif isinstance(module, nn.BatchNorm2d):
-            nn.init.ones_(module.weight)
-
-        if hasattr(module, "bias") and module.bias is not None:
-            nn.init.zeros_(module.bias)
+            if module.weight is not None:
+                nn.init.ones_(module.weight)
+            if module.bias is not None:
+                nn.init.zeros_(module.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Perform forward pass through convolutional layers and classification head.

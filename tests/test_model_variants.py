@@ -59,6 +59,7 @@ def test_gap_head_does_not_grow_with_spatial_resolution() -> None:
 
 @pytest.mark.parametrize("model_class", [BaselineReducedPoolingCNN, ReducedPoolingGAPCNN])
 def test_variant_rejects_pooling_collapse(model_class) -> None:
+    """Both architectures reject stage layouts that pool below 2x2."""
     kwargs = {"fc_hidden": 8} if model_class is BaselineReducedPoolingCNN else {}
     with pytest.raises(ValueError, match="too small for 2x2 max-pooling"):
         model_class((3, 2, 2), [4, 8, 16], **kwargs)

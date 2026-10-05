@@ -54,6 +54,22 @@ uv run python scripts/train_reduced_pooling.py --training-name reduced-pooling -
 uv run python scripts/train_gap_classifier.py --training-name gap --conv-channels 32 64 128 --early-stop --patience 10
 ```
 
+### Residual network
+
+Train the from-scratch CIFAR residual model with:
+
+```powershell
+uv run python scripts/train_resnet.py
+```
+
+The default architecture has four stages with channel widths 32, 64, 128, and
+256, and two residual blocks per stage. The first stage preserves image
+resolution; later stages downsample at their first block. Global average
+pooling feeds the class-output layer. Defaults enable crop/flip augmentation,
+AdamW with weight decay, and StepLR. Use `--help` to inspect or override the
+architecture and training settings. Run artifacts are written under
+`artifacts/resnet/<training_name>_<run_id>/`.
+
 Early stopping is disabled by default. Enable it with `--early-stop`; patience
 counts consecutive epochs without an improvement in validation loss. Evaluation
 uses the checkpoint with the lowest validation loss, whether or not early

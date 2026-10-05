@@ -95,7 +95,8 @@ def load_datasets(
     train_indices: Sequence[int] | None = None,
     val_indices: Sequence[int] | None = None,
     train_only: Literal[False] = False,
-) -> tuple[Subset, Subset, datasets.CIFAR100]: ...
+) -> tuple[Subset, Subset, datasets.CIFAR100]:
+    """Load CIFAR-100 training, validation, and official test splits."""
 
 
 @overload
@@ -105,7 +106,8 @@ def load_datasets(
     train_indices: Sequence[int] | None = None,
     val_indices: Sequence[int] | None = None,
     train_only: Literal[True] = ...,
-) -> tuple[datasets.CIFAR100]: ...
+) -> tuple[datasets.CIFAR100]:
+    """Load only the raw CIFAR-100 training split."""
 
 
 def load_datasets(

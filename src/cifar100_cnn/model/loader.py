@@ -44,10 +44,9 @@ def load_model(
         RuntimeError: If loading the state dictionary into the model fails.
 
     Notes:
-        The checkpoint is deserialized with weights_only=False because it
-        contains metadata and optimizer state in addition to tensor weights.
-        Only load checkpoints from a trusted source, since PyTorch deserialization
-        can execute code embedded in a pickle payload.
+        Checkpoints are loaded with PyTorch's restricted ``weights_only``
+        deserializer. The format contains tensors and basic Python containers;
+        custom Python objects are not required.
     """
     path = Path(checkpoint_path).resolve()
     if not path.is_file():
@@ -56,7 +55,7 @@ def load_model(
     target_device = torch.device(device) if device is not None else torch.device("cpu")
 
     try:
-        checkpoint = torch.load(path, map_location=target_device, weights_only=False)
+        checkpoint = torch.load(path, map_location=target_device, weights_only=True)
     except Exception as exc:
         raise ValueError(f"Failed to deserialize checkpoint file '{path}': {exc}") from exc
 

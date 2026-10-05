@@ -13,6 +13,7 @@ from cifar100_cnn.data.loader import (
     load_datasets,
     visualize_cifar_dataset,
 )
+from cifar100_cnn.data.transforms import PerSampleBatchTransform, get_gpu_train_transform
 
 __all__ = [
     "CIFARDataset",
@@ -21,5 +22,7 @@ __all__ = [
     "get_cifar_dataset",
     "get_train_val_split_indices",
     "load_datasets",
+    "PerSampleBatchTransform",
+    "get_gpu_train_transform",
     "visualize_cifar_dataset",
 ]

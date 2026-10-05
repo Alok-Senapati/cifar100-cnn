@@ -126,7 +126,7 @@ def main() -> None:
     if not models:
         st.warning(
             "No saved checkpoints were found. Run `scripts/train_baseline.py` first; "
-            "models will appear under `artifacts/<model_type>/<run_id>/`."
+            "models will appear under `artifacts/<model_type>/<training_name>_<run_id>/`."
         )
         return
 

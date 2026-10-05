@@ -93,7 +93,7 @@ def test_load_model_rejects_malformed_metadata(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("early_stopping, expected_epochs", [(True, 2), (False, 4)])
 def test_early_stopping_controls_training_duration(
-    tmp_path: Path, early_stopping: bool, expected_epochs: int
+    tmp_path: Path, early_stopping: bool, expected_epochs: int, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """A flat validation loss stops training only when early stopping is enabled."""
     model = nn.Linear(2, 2)
@@ -117,3 +117,7 @@ def test_early_stopping_controls_training_duration(
         )
 
     assert step.call_count == expected_epochs * len(loader)
+    if early_stopping:
+        output = capsys.readouterr().out
+        assert "Epoch: 02/4" in output
+        assert "Early stopping at epoch: 2" in output

@@ -180,6 +180,7 @@ def train(
         writer.add_graph(model, sample_input)
 
     for epoch in range(1, epochs + 1):
+        should_stop = False
         with Timer() as elapsed_timer:
             running_training_loss = 0.0
             running_training_correct_predictions = 0.0
@@ -252,8 +253,7 @@ def train(
                 degrade_counter += 1
 
             if early_stopping and degrade_counter >= patience:
-                print(f"Early stopping at epoch: {epoch}...")
-                break
+                should_stop = True
 
         current_lr = optimizer.param_groups[0]["lr"]
 
@@ -272,7 +272,7 @@ def train(
                 writer.add_scalar(tag, value, epoch)
 
         learning_rates.append(current_lr)
-        if lr_scheduler is not None:
+        if lr_scheduler is not None and not should_stop:
             # Plateau schedulers consume validation loss; other schedulers advance per epoch.
             if isinstance(lr_scheduler, ReduceLROnPlateau):
                 lr_scheduler.step(val_loss)
@@ -285,6 +285,9 @@ def train(
             f"| Training Loss: {train_loss:.4f}, Accuracy: {train_accuracy:.4f} "
             f"| Validation Loss: {val_loss:.4f}, Accuracy: {val_accuracy:.4f} "
         )
+        if should_stop:
+            print(f"Early stopping at epoch: {epoch}...")
+            break
 
     if created_writer and writer is not None:
         writer.close()

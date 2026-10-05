@@ -16,6 +16,7 @@ class AddSampleCounter(nn.Module):
         self.calls = 0
 
     def forward(self, image: torch.Tensor) -> torch.Tensor:
+        """Return a distinct constant offset on every transform invocation."""
         self.calls += 1
         return image + float(self.calls)
 
