@@ -240,3 +240,22 @@ uv run pytest
 uv run ruff check src scripts tests
 uv run mypy src tests scripts app.py
 ```
+
+
+## Project completion
+
+The main educational arc is now at the final ablation stage. The strongest verified
+model so far is `SmallResNet` (2.82M parameters), with best validation loss
+`1.4508` and `62.89%` test accuracy from the minimum-validation-loss checkpoint.
+
+The final controlled experiment is the matched `PlainStageCNN` vs `SmallResNet`
+comparison. After that run completes, use the winning validation-selected checkpoint
+for class-level error analysis:
+
+```powershell
+uv run python scripts/analyze_errors.py path\to\best_model.pt
+```
+
+See `docs/PROJECT_COMPLETION.md` for the final comparison table, interpretation
+rules, error-analysis checklist, and criteria for considering the CIFAR-100 learning
+project complete.

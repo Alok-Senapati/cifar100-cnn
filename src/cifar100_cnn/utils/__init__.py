@@ -1,7 +1,8 @@
-"""Reusable activation, diagnostics, timing, console, and visualization utilities."""
+"""Reusable activation, diagnostics, error analysis, timing, console, and visualization utilities."""
 
 from cifar100_cnn.utils.activation import LayerActivation, capture_layer_activations
 from cifar100_cnn.utils.diagnose import compute_gradient_norms
+from cifar100_cnn.utils.error_analysis import per_class_recall, top_confusions
 from cifar100_cnn.utils.printer import section_printer
 from cifar100_cnn.utils.timer import Timer
 from cifar100_cnn.utils.visualizer import (
@@ -19,7 +20,9 @@ __all__ = [
     "Timer",
     "capture_layer_activations",
     "compute_gradient_norms",
+    "per_class_recall",
     "section_printer",
+    "top_confusions",
     "visualize_accuracy",
     "visualize_augmentations",
     "visualize_confusion_matrix",
