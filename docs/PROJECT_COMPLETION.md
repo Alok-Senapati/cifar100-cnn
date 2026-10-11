@@ -81,6 +81,52 @@ The script writes `error_analysis.json` beside the checkpoint unless `--output` 
 4. Whether confusions are semantically/visually plausible.
 5. Which errors appear limited by CIFAR-100's 32x32 resolution.
 
+### Observed error patterns
+
+The final SmallResNet checkpoint reaches **62.89% test accuracy**. Its largest errors are concentrated in visually or semantically similar classes:
+
+| True class | Predicted class | Count |
+|---|---|---:|
+| girl | woman | 29 |
+| maple_tree | oak_tree | 22 |
+| otter | seal | 19 |
+| streetcar | bus | 18 |
+| man | woman | 18 |
+| boy | woman | 17 |
+| boy | girl | 15 |
+| poppy | tulip | 14 |
+| willow_tree | oak_tree | 14 |
+| rose | tulip | 13 |
+| woman | man | 13 |
+| worm | snake | 13 |
+| boy | man | 13 |
+| pine_tree | oak_tree | 12 |
+| hamster | mouse | 12 |
+
+The weakest classes by recall are:
+
+| Class | Recall |
+|---|---:|
+| otter | 21% |
+| possum | 25% |
+| boy | 32% |
+| rabbit | 32% |
+| lizard | 33% |
+| girl | 34% |
+| crocodile | 39% |
+| lobster | 40% |
+| squirrel | 40% |
+| turtle | 40% |
+| man | 43% |
+| mouse | 46% |
+| seal | 46% |
+| shrew | 46% |
+| bear | 48% |
+
+These results point to a consistent failure mode: the model usually struggles where CIFAR-100 asks it to distinguish fine-grained categories that share shape, texture, pose, or context at only **32x32** resolution. Human subclasses (boy/girl/man/woman), tree species, flowers, small mammals, reptiles, and aquatic mammals dominate the error list. This suggests the remaining error is less about gross object detection and more about **fine-grained feature discrimination**.
+
+A second pattern is asymmetric confusion. For example, many `girl` examples become `woman`, and several tree classes collapse into `oak_tree`. That suggests some learned classes act as stronger attractors in feature space than nearby alternatives. Future work could inspect classwise precision, calibration, embeddings, or representative misclassified images, but those are optional extensions rather than requirements for this project.
+
 ## Final ablation narrative
 
 The final README/report should cover this progression:
@@ -124,9 +170,9 @@ Important lessons already supported by completed experiments:
 - [x] Matched `PlainStageCNN` implemented
 - [x] Matched `PlainStageCNN` training completed
 - [x] Plain-vs-residual comparison recorded
-- [ ] Winning checkpoint error analysis generated
-- [ ] Top confusion pairs and weakest classes reviewed
-- [ ] Final experiment table updated
-- [ ] Final README conclusions updated
+- [x] Winning checkpoint error analysis generated
+- [x] Top confusion pairs and weakest classes reviewed
+- [x] Final experiment table updated
+- [x] Final README conclusions updated
 
-Once the unchecked items are complete, the educational objective of this CIFAR-100 project is complete. Further accuracy tuning should be treated as optional benchmarking, not a required project stage.
+All core checklist items are complete. The educational objective of this CIFAR-100 project is complete. Further work should be treated as optional benchmarking or research, not a required project stage.
