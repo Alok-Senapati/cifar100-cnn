@@ -8,7 +8,9 @@ import numpy as np
 import pytest
 import torch
 
-from app import discover_checkpoints, predict, tensor_to_image
+from app import architecture_sections, discover_checkpoints, predict, tensor_to_image
+from cifar100_cnn.model.baseline import BaselineCNN
+from cifar100_cnn.model.resnet import SmallResNet
 
 
 def test_discover_checkpoints_groups_model_types_and_runs(tmp_path: Path) -> None:
@@ -63,3 +65,31 @@ def test_predict_returns_class_confidence_and_probabilities() -> None:
     assert 0.0 <= confidence <= 1.0
     assert probabilities.shape == (2,)
     assert torch.isclose(probabilities.sum(), torch.tensor(1.0))
+
+
+def test_architecture_sections_follow_the_model_family_structure() -> None:
+    """The explainer flow maps to actual CNN blocks and ResNet stages."""
+    cnn = BaselineCNN((3, 32, 32), [4, 8], fc_hidden=16, n_classes=5)
+    resnet = SmallResNet(
+        (3, 32, 32),
+        n_classes=5,
+        stage_channels=(4, 8),
+        blocks_per_stage=1,
+        initialize_weights=False,
+    )
+
+    cnn_sections = architecture_sections(cnn)
+    resnet_sections = architecture_sections(resnet)
+
+    assert [section[1] for section in cnn_sections] == [
+        "conv_layers.conv_0",
+        "conv_layers.conv_1",
+        "classifier_layer",
+    ]
+    assert [section[1] for section in resnet_sections] == [
+        "stem",
+        "stages.0",
+        "stages.1",
+        "global_pool",
+        "classifier",
+    ]

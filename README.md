@@ -178,26 +178,39 @@ pass `get_gpu_train_transform(dataset.means, dataset.stds)` to the trainer's
 `transform` argument. The returned training batches still need augmentation
 and normalization. The GAP script performs this wiring automatically.
 
-## Inference app
+## Local model explorer
 
-Launch the Streamlit dashboard to select a saved model and run inference on
-an image from the CIFAR-100 test set:
+Launch the custom browser interface and open `http://127.0.0.1:8765`:
 
 ```powershell
-uv run streamlit run app.py
+uv run python scripts/run_explorer.py
 ```
 
-The dashboard groups checkpoints by model type, lists the available training
-runs, and shows the predicted class, confidence, and top predictions.
+The interface is served by a small Python HTTP server and uses local HTML, CSS,
+and JavaScript. It discovers saved checkpoints under `artifacts/`, displays the
+model as a clickable forward-flow graph, and provides an expandable layer tree.
+Selecting a stage or operation shows its output shape, activation maps, top
+predictions, and learned convolution, BatchNorm, or dense parameters. The filter
+slider and flow animation help trace the network's changing representations.
+
+All model inference and data access stay on this computer. The explorer binds
+to loopback only, makes no calls to hosted services, and does not download the
+CIFAR-100 dataset. Install the dataset locally before launching if it is not
+already available under `data/`.
+
+Activation maps show a layer's response to the selected image; they do not
+identify concepts by themselves or guarantee an explanation of the prediction.
+The older Streamlit dashboard remains available with `uv run streamlit run app.py`.
 
 ## Project layout
 
 - `src/cifar100_cnn/args`: Training configuration dataclasses.
 - `src/cifar100_cnn/data`: CIFAR-100 loading, splits, normalization, and previews.
 - `src/cifar100_cnn/model`: Baseline architecture, training, evaluation, and checkpoints.
-- `src/cifar100_cnn/utils`: Diagnostics, timing, console formatting, and plots.
-- `scripts`: Executable training workflows.
-- `app.py`: Streamlit model-selection and inference dashboard.
+- `src/cifar100_cnn/utils`: Diagnostics, timing, activation capture, and plots.
+- `scripts`: Executable training workflows and the local explorer launcher.
+- `portal_ui`: Custom local browser interface for model and layer exploration.
+- `app.py`: Legacy Streamlit model-selection and inference dashboard.
 - `tests`: Unit tests for the model and data helpers.
 
 Public package exports are listed in each subpackage's `__init__.py`.

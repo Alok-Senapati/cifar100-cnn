@@ -1,5 +1,6 @@
-"""Reusable diagnostics, timing, console, and visualization utilities."""
+"""Reusable activation, diagnostics, timing, console, and visualization utilities."""
 
+from cifar100_cnn.utils.activation import LayerActivation, capture_layer_activations
 from cifar100_cnn.utils.diagnose import compute_gradient_norms
 from cifar100_cnn.utils.printer import section_printer
 from cifar100_cnn.utils.timer import Timer
@@ -14,7 +15,9 @@ from cifar100_cnn.utils.visualizer import (
 )
 
 __all__ = [
+    "LayerActivation",
     "Timer",
+    "capture_layer_activations",
     "compute_gradient_norms",
     "section_printer",
     "visualize_accuracy",

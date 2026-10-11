@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b1020" />
+    <title>CIFAR Model Studio</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="CIFAR Model Studio home">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span><b>CIFAR</b><small>MODEL STUDIO</small></span>
+        </a>
+        <div class="topbar-center"><span class="live-dot"></span> LOCAL MODEL EXPLORER</div>
+        <div class="topbar-right">
+          <span class="local-pill"><span></span> Running on this machine</span>
+          <span class="avatar">ML</span>
+        </div>
+      </header>
+
+      <div class="workspace">
+        <aside class="sidebar">
+          <div class="sidebar-heading">
+            <div class="eyebrow">WORKSPACE</div>
+            <h2>Explore a model</h2>
+            <p>Choose a trained run and an image to follow its forward pass.</p>
+          </div>
+
+          <label class="field-label" for="model-type">MODEL FAMILY</label>
+          <select id="model-type" class="select-control"></select>
+
+          <label class="field-label" for="model-run">TRAINING RUN</label>
+          <select id="model-run" class="select-control"></select>
+          <div id="checkpoint-caption" class="field-hint"></div>
+
+          <div class="sidebar-rule"></div>
+          <div class="section-label-row">
+            <span class="field-label">INPUT IMAGE</span>
+            <span class="dataset-tag">CIFAR-100 TEST</span>
+          </div>
+          <label class="sr-only" for="class-select">Image class</label>
+          <select id="class-select" class="select-control"></select>
+          <label class="sr-only" for="image-select">Test image</label>
+          <select id="image-select" class="select-control"></select>
+          <div class="image-frame">
+            <img id="image-preview" alt="Selected CIFAR-100 test example" />
+            <div id="image-placeholder" class="image-placeholder">Choose an image</div>
+          </div>
+          <div id="image-caption" class="image-caption">Local test-set sample</div>
+
+          <button id="replay-button" class="replay-button" type="button">
+            <span aria-hidden="true">↻</span> Replay forward pass
+          </button>
+          <div class="sidebar-footer">
+            <span class="shield-icon" aria-hidden="true">◈</span>
+            <span>Inference stays on this computer.<br />No model or image uploads.</span>
+          </div>
+        </aside>
+
+        <main class="main-content">
+          <section class="page-intro">
+            <div>
+              <div class="eyebrow">VISUAL EXPLAINER <span class="eyebrow-divider">/</span> CIFAR-100</div>
+              <h1>See how the model sees.</h1>
+              <p>Follow one image through the network. Select a block or layer to inspect its response and learned weights.</p>
+            </div>
+            <div class="run-chip"><span class="run-chip-icon">⌘</span><span id="run-chip-name">Loading run…</span></div>
+          </section>
+
+          <section class="panel architecture-panel">
+            <div class="panel-heading">
+              <div>
+                <div class="panel-kicker">FORWARD PASS</div>
+                <h2>Network architecture</h2>
+              </div>
+              <div class="architecture-legend"><span class="legend-dot input-dot"></span> Input <span class="legend-line"></span> Feature flow <span class="legend-dot output-dot"></span> Prediction</div>
+            </div>
+            <div id="architecture-flow" class="architecture-flow">
+              <div class="loading-line"><span class="spinner"></span> Loading local checkpoints…</div>
+            </div>
+            <div class="flow-footer">
+              <span id="flow-summary">Choose a model run to begin.</span>
+              <label class="play-toggle"><input id="auto-play" type="checkbox" /><span class="toggle-track"></span><span>Animate flow</span></label>
+            </div>
+          </section>
+
+          <section class="inspector-layout">
+            <article class="panel response-panel">
+              <div class="panel-heading response-heading">
+                <div>
+                  <div class="panel-kicker">LAYER INSPECTOR</div>
+                  <h2 id="selected-title">Select a network block</h2>
+                </div>
+                <span id="selected-kind" class="type-tag">Awaiting selection</span>
+              </div>
+              <p id="selected-description" class="layer-description">Click any block in the architecture above, or open the full layer tree below.</p>
+              <div class="shape-row">
+                <div><span class="stat-label">OUTPUT TENSOR</span><code id="selected-shape">—</code></div>
+                <div><span class="stat-label">PARAMETERS</span><b id="selected-parameters">—</b></div>
+                <div><span class="stat-label">IMAGE LABEL</span><b id="actual-label">—</b></div>
+              </div>
+              <div id="residual-detail" class="residual-detail" hidden></div>
+              <div class="feature-heading">
+                <div><span class="stat-label">IMAGE RESPONSE</span><h3>Feature maps</h3></div>
+                <span id="map-count" class="map-count">Select a layer</span>
+              </div>
+              <div id="feature-map-grid" class="feature-map-grid">
+                <div class="empty-state">Layer activations will appear here.</div>
+              </div>
+              <div class="interpretation-note"><span>i</span><span>Activations show where a layer responds to this image. They are not guaranteed to represent human-readable concepts.</span></div>
+            </article>
+
+            <aside class="panel weights-panel">
+              <div class="panel-heading">
+                <div>
+                  <div class="panel-kicker">LEARNED PARAMETERS</div>
+                  <h2 id="weights-title">What this layer learned</h2>
+                </div>
+                <span class="weight-spark" aria-hidden="true">✳</span>
+              </div>
+              <p id="weights-description" class="weights-description">Select a convolution, normalization, or dense layer to inspect its trained parameters.</p>
+              <div id="filter-control" class="filter-control" hidden>
+                <label for="filter-index">OUTPUT FILTER</label>
+                <div class="filter-slider-row"><input id="filter-index" type="range" min="0" max="0" value="0" /><output id="filter-value">0</output></div>
+              </div>
+              <div id="weight-visualization" class="weight-visualization">
+                <div class="weight-empty"><div class="weight-empty-mark">✳</div><span>Parameter view appears<br />when you select a layer</span></div>
+              </div>
+              <div id="weight-footnote" class="weight-footnote"></div>
+              <div class="prediction-block">
+                <div class="feature-heading"><div><span class="stat-label">MODEL OUTPUT</span><h3>Top predictions</h3></div><span id="confidence-chip" class="confidence-chip">—</span></div>
+                <div id="prediction-list" class="prediction-list"><div class="empty-prediction">Predictions appear after the first pass.</div></div>
+              </div>
+            </aside>
+          </section>
+
+          <details class="panel tree-panel" id="tree-panel">
+            <summary><span><span class="panel-kicker">DEEPER INSPECTION</span><b>Full layer hierarchy</b></span><span class="tree-summary-hint">Expand to select individual operations <i>⌄</i></span></summary>
+            <div id="module-tree" class="module-tree"></div>
+          </details>
+          <footer class="page-footer"><span>CIFAR MODEL STUDIO</span><span>Local inference · PyTorch · CIFAR-100</span></footer>
+        </main>
+      </div>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    </div>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
