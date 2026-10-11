@@ -319,18 +319,12 @@ def render_layer_explorer(
         )
         selected_path_key = "explorer_selected_module_path"
         if selected_path_key not in st.session_state:
-            st.session_state[selected_path_key] = activations[
-                st.session_state[selected_key]
-            ].name
+            st.session_state[selected_path_key] = activations[st.session_state[selected_key]].name
         elif st.session_state[selected_path_key] not in modules:
-            st.session_state[selected_path_key] = activations[
-                st.session_state[selected_key]
-            ].name
+            st.session_state[selected_path_key] = activations[st.session_state[selected_key]].name
         if st.session_state.get("explorer_autoplay", False):
             st.session_state[selected_key] = (st.session_state[selected_key] + 1) % layer_count
-            st.session_state[selected_path_key] = activations[
-                st.session_state[selected_key]
-            ].name
+            st.session_state[selected_path_key] = activations[st.session_state[selected_key]].name
 
         activation_indices = {
             activation.name: index for index, activation in enumerate(activations)
@@ -352,8 +346,7 @@ def render_layer_explorer(
             expanded = bool(st.session_state.get(expanded_key, False))
             connector = "└── " if is_last else "├── "
             node_label = (
-                f"{prefix}{connector}{name.rsplit('.', maxsplit=1)[-1]} "
-                f"· {type(module).__name__}"
+                f"{prefix}{connector}{name.rsplit('.', maxsplit=1)[-1]} · {type(module).__name__}"
             )
 
             if children and layer_index is not None:
@@ -362,9 +355,7 @@ def render_layer_explorer(
                     f"● {node_label} · output",
                     key=f"explorer-tree-node:{name}",
                     type=(
-                        "primary"
-                        if layer_index == st.session_state[selected_key]
-                        else "secondary"
+                        "primary" if layer_index == st.session_state[selected_key] else "secondary"
                     ),
                     width="stretch",
                 ):
@@ -389,9 +380,7 @@ def render_layer_explorer(
                     f"{'●' if layer_index == st.session_state[selected_key] else '○'} {node_label}",
                     key=f"explorer-tree-node:{name}",
                     type=(
-                        "primary"
-                        if layer_index == st.session_state[selected_key]
-                        else "secondary"
+                        "primary" if layer_index == st.session_state[selected_key] else "secondary"
                     ),
                     width="stretch",
                 ):

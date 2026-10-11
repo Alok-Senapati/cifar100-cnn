@@ -232,9 +232,9 @@ class ExplorerService:
         self._classmap: dict[int, str] = {}
         self._normalization: transforms.Normalize | None = None
         self._models: OrderedDict[str, nn.Module] = OrderedDict()
-        self._passes: OrderedDict[
-            tuple[str, int], tuple[list[LayerActivation], Tensor]
-        ] = OrderedDict()
+        self._passes: OrderedDict[tuple[str, int], tuple[list[LayerActivation], Tensor]] = (
+            OrderedDict()
+        )
         self._lock = RLock()
 
     def _load_data(self) -> None:
@@ -384,9 +384,7 @@ class ExplorerService:
                     or activation.name.startswith(f"{section['path']}.")
                 ]
                 if section_matches:
-                    section_data.append(
-                        {**section, "activation_index": section_matches[-1]}
-                    )
+                    section_data.append({**section, "activation_index": section_matches[-1]})
 
             values = selected_activation.values[0]
             maps = []

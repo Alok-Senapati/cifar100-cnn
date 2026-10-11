@@ -70,6 +70,22 @@ AdamW with weight decay, and StepLR. Use `--help` to inspect or override the
 architecture and training settings. Run artifacts are written under
 `artifacts/resnet/<training_name>_<run_id>/`.
 
+To compare residual learning against a depth-matched plain CNN, train the
+control model with:
+
+```powershell
+uv run python scripts/train_plain_staged.py
+```
+
+The control keeps the same stem, stage widths, two-convolution blocks,
+transition downsampling, global pooling, and classifier as the residual model.
+It removes shortcut connections and applies a ReLU after each block's second
+normalization. It accepts the same architecture and optimization options as
+`train_resnet.py`; run artifacts are saved under
+`artifacts/plain_staged/<training_name>_<run_id>/`. To make a controlled
+comparison, keep the data split, augmentation, optimizer, and training settings
+the same for both runs.
+
 Early stopping is disabled by default. Enable it with `--early-stop`; patience
 counts consecutive epochs without an improvement in validation loss. Evaluation
 uses the checkpoint with the lowest validation loss, whether or not early
