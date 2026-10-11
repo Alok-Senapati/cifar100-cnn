@@ -244,18 +244,27 @@ uv run mypy src tests scripts app.py
 
 ## Project completion
 
-The main educational arc is now at the final ablation stage. The strongest verified
-model so far is `SmallResNet` (2.82M parameters), with best validation loss
-`1.4508` and `62.89%` test accuracy from the minimum-validation-loss checkpoint.
+The educational CIFAR-100 architecture study is complete.
 
-The final controlled experiment is the matched `PlainStageCNN` vs `SmallResNet`
-comparison. After that run completes, use the winning validation-selected checkpoint
-for class-level error analysis:
+The matched final ablation shows:
 
-```powershell
-uv run python scripts/analyze_errors.py path\to\best_model.pt
-```
+| Model | Parameters | Best val loss | Test accuracy |
+|---|---:|---:|---:|
+| PlainStageCNN | 2,776,836 | 1.5242 | 59.47% |
+| **SmallResNet** | **~2.82M** | **1.4508** | **62.89%** |
 
-See `docs/PROJECT_COMPLETION.md` for the final comparison table, interpretation
-rules, error-analysis checklist, and criteria for considering the CIFAR-100 learning
-project complete.
+Because the two models use nearly the same capacity, stage widths, block count,
+downsampling, BatchNorm, GAP head, initialization, augmentation, optimizer, and
+scheduler, this is the strongest experiment in the project supporting a real benefit
+from residual shortcuts.
+
+Final SmallResNet error analysis shows that most remaining mistakes are fine-grained:
+human age/sex classes, tree species, flowers, small mammals, reptiles, and similar
+aquatic animals. The weakest recalls include otter (21%), possum (25%), boy (32%),
+rabbit (32%), lizard (33%), and girl (34%). The dominant confusion pairs are also
+semantically or visually close, such as girl -> woman, maple_tree -> oak_tree,
+otter -> seal, streetcar -> bus, and poppy -> tulip.
+
+See `docs/PROJECT_COMPLETION.md` for the full experiment progression, controlled
+residual comparison, error-analysis tables, and final lessons. Further CIFAR-100
+tuning is considered optional benchmarking rather than required project work.
