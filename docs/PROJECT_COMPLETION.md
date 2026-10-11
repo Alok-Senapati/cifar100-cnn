@@ -12,9 +12,10 @@ Finish the project with one controlled residual-learning ablation, final error a
 | 10-conv GAP A | 4.77M | 1.6056 | 59.53% |
 | 15-conv GAP | 7.91M | 1.6524 | 58.31% |
 | 10-conv GAP B | 4.77M | 1.6552 | 59.57% |
+| **PlainStageCNN** | **2.78M** | **1.5242** | **59.47%** |
 | **SmallResNet** | **2.82M** | **1.4508** | **62.89%** |
 
-SmallResNet is the provisional best model. The matched `PlainStageCNN` run is intentionally kept as the final controlled ablation before attributing the improvement specifically to residual shortcuts.
+SmallResNet remains the best model after the matched control. With nearly the same parameter count and the same staged architecture/training recipe, the residual version improves best validation loss from `1.5242` to `1.4508` and test accuracy from `59.47%` to `62.89%`. This is the cleanest evidence in the project that skip connections materially improved the matched architecture.
 
 ## Final controlled experiment
 
@@ -46,13 +47,15 @@ Record:
 
 | Metric | PlainStageCNN | SmallResNet |
 |---|---:|---:|
-| Parameters | pending | 2.82M |
-| Best epoch | pending | 22 |
-| Best validation loss | pending | 1.4508 |
-| Peak validation accuracy | pending | 64.74% |
-| Final training accuracy | pending | 99.91% |
-| Final validation loss | pending | 2.1145 |
-| Test accuracy at best-loss checkpoint | pending | 62.89% |
+| Parameters | 2,776,836 | 2.82M |
+| Best epoch | 22 | 22 |
+| Best validation loss | 1.5242 | 1.4508 |
+| Validation accuracy at selected checkpoint | 59.60% | not recorded here |
+| Test accuracy at best-loss checkpoint | 59.47% | 62.89% |
+| Macro F1 at best-loss checkpoint | 59.17% | not recorded here |
+| Peak validation accuracy | not supplied | 64.74% |
+| Final training accuracy | not supplied | 99.91% |
+| Final validation loss | not supplied | 2.1145 |
 
 ### Interpretation rules
 
@@ -107,8 +110,9 @@ Important lessons already supported by completed experiments:
 - BatchNorm produced one of the largest improvements in the plain CNN sequence.
 - The 8-conv staged GAP model improved strongly over the 4-conv model.
 - Increasing plain GAP depth beyond that point did not improve validation loss under the established recipe.
-- SmallResNet currently gives the best validation loss and test accuracy with fewer parameters than the deeper plain GAP models.
-- SmallResNet still overfits heavily, so residual connections should not be described as an overfitting solution.
+- The matched `PlainStageCNN` (2.78M parameters) reaches best validation loss `1.5242` and test accuracy `59.47%`.
+- The matched `SmallResNet` (2.82M parameters) improves those to `1.4508` and `62.89%`, respectively, strongly supporting a benefit from residual shortcuts under the controlled staged comparison.
+- This controlled result supports a residual-learning benefit, but it still does not mean residual connections solve overfitting; SmallResNet's late training reaches 99.91% train accuracy while validation loss rises to 2.1145.
 
 ## Completion checklist
 
@@ -118,8 +122,8 @@ Important lessons already supported by completed experiments:
 - [x] SmallResNet implemented from scratch
 - [x] SmallResNet trained and evaluated
 - [x] Matched `PlainStageCNN` implemented
-- [ ] Matched `PlainStageCNN` training completed
-- [ ] Plain-vs-residual comparison recorded
+- [x] Matched `PlainStageCNN` training completed
+- [x] Plain-vs-residual comparison recorded
 - [ ] Winning checkpoint error analysis generated
 - [ ] Top confusion pairs and weakest classes reviewed
 - [ ] Final experiment table updated
